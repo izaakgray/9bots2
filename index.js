@@ -95,6 +95,12 @@ client.on('messageCreate', async (message) => {
     await message.react('🇫');
     await message.react('🇷');
   }
+  if (content.includes('blaber')) {
+    await message.react('🐐');
+  }
+  if (content.includes('inspired')) {
+    await message.react('🐶');
+  }
 
   // --- RANDOM 1/100 REACTION PER USER (if in userReactionsMap) ---
   const reactions = userReactionsMap[message.author.id];
