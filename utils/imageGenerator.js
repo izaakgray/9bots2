@@ -42,8 +42,8 @@ async function generateQuoteImage({
   // Typical Discord-ish colors
   const BG_COLOR = '#313338';
   const USER_TEXT_COLOR = roleColor || '#FFFFFF';
-  const MESSAGE_TEXT_COLOR = '#F0F1F2';
-  const TIMESTAMP_COLOR = '#BBC7D5';
+  const MESSAGE_TEXT_COLOR = '#FAFAFA';
+  const TIMESTAMP_COLOR = '#CEDBEA';
 
   // Layout constants
   const CANVAS_WIDTH = 700;
