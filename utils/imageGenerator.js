@@ -60,7 +60,7 @@ async function generateQuoteImage({
   const LINE_HEIGHT = 26;
 
   // Fake timestamp
-  const timestampText = 'Today at H8:PM';
+  const timestampText = 'Today at H8:00 PM';
 
   // -----------------------------
   // STEP 1) Measure text
