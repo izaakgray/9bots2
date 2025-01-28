@@ -17,6 +17,9 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
+// Cache for quotes messages
+const quotesMessageCache = new Map();
+
 // Read command files
 const commandFiles = fs
   .readdirSync(path.join(__dirname, 'commands'))
@@ -104,5 +107,29 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+// Listen for message deletion
+client.on('messageDelete', async (message) => {
+  const cacheEntry = quotesMessageCache.get(message.id);
+  if (!cacheEntry) return;
+
+  const { quote, channel } = cacheEntry;
+
+  // Add the quote to the JSON file
+  const quotesFilePath = path.join(__dirname, 'data', 'quotes.json');
+  const quotesData = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
+  quotesData.quotes.push(quote);
+  fs.writeFileSync(quotesFilePath, JSON.stringify(quotesData, null, 2), 'utf-8');
+
+  // Send a message about tampering
+  await channel.send(
+    `**"${quote}"** has been added to the 9quotes because 9dots tried to delete it, the 🐀!`
+  );
+
+  // Remove from the cache
+  quotesMessageCache.delete(message.id);
+});
+
 // Finally, log in
 client.login(TOKEN);
+
+module.exports = { quotesMessageCache }; // Export cache for use in commands
