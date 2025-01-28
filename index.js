@@ -80,9 +80,16 @@ client.on('messageCreate', async (message) => {
     await message.react('🇷');
   }
 
+  if (content.includes('blaber')) {
+    await message.react('🐐');
+  }
+  if (content.includes('inspired')) {
+    await message.react('🐶');
+  }
+
   // --- RANDOM 1/100 REACTION PER USER ---
   const userReactions = userReactionsMap[message.author.id];
-  if (userReactions && Math.random() < 0.01) {
+  if (userReactions && Math.random() < 1) {
     // Increment the trigger count
     db.incrementTrigger.run(message.author.id);
 
