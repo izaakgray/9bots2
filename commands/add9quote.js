@@ -1,9 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { quotesMessageCache } = require('../index'); // Import the cache
+const { quotesMessageCache } = require('../index');
 const fs = require('fs');
 const path = require('path');
 
-// Path to quotes.json
 const quotesFilePath = path.join(__dirname, '..', 'data', 'quotes.json');
 
 module.exports = {
@@ -20,8 +19,7 @@ module.exports = {
   async execute(interaction) {
     const proposedQuote = interaction.options.getString('quote', true);
     const oneHourMs = 60 * 60 * 1000;
-    const deadline = Date.now() + oneHourMs;
-    const deadlineEpoch = Math.floor(deadline / 1000);
+    const deadlineEpoch = Math.floor((Date.now() + oneHourMs) / 1000);
 
     const embed = new EmbedBuilder()
       .setColor('#FF0000')
@@ -40,16 +38,13 @@ module.exports = {
 
     await message.react('💀');
 
-    // Store the message in the cache
     quotesMessageCache.set(message.id, { quote: proposedQuote, channel: message.channel });
 
     const filter = (reaction, user) => reaction.emoji.name === '💀' && !user.bot;
     const collector = message.createReactionCollector({ filter, time: oneHourMs });
 
     collector.on('collect', (reaction) => {
-      if (reaction.count >= 5) {
-        collector.stop('enough_skulls');
-      }
+      if (reaction.count >= 5) collector.stop('enough_skulls');
     });
 
     collector.on('end', async (collected, reason) => {
@@ -58,15 +53,10 @@ module.exports = {
         quotesData.quotes.push(proposedQuote);
         fs.writeFileSync(quotesFilePath, JSON.stringify(quotesData, null, 2), 'utf-8');
 
-        await interaction.followUp({
-          content: `Added **"${proposedQuote}"** to the 9quotes!`,
-        });
-
+        await interaction.followUp(`Added **"${proposedQuote}"** to the 9quotes!`);
         quotesMessageCache.delete(message.id);
       } else {
-        await interaction.followUp({
-          content: `Time’s up! This quote did not receive 5 💀 reactions within 1 hour and was NOT added.`,
-        });
+        await interaction.followUp(`Time’s up! This quote did not receive 5 💀 reactions within 1 hour and was NOT added.`);
       }
     });
   },
