@@ -1,4 +1,3 @@
-// commands/add9quote.js
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -18,16 +17,15 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    // 1) The submitted quote
+    // 1) Get the submitted quote
     const proposedQuote = interaction.options.getString('quote', true);
 
-    // 2) Calculate 1-hour deadline (in ms -> s)
+    // 2) Calculate 1-hour deadline
     const oneHourMs = 60 * 60 * 1000;
     const deadline = Date.now() + oneHourMs;
     const deadlineEpoch = Math.floor(deadline / 1000); // for <t:xxx:R>
 
     // 3) Build the embed
-    //    - Put ALL instructions in the description to avoid repetition
     const embed = new EmbedBuilder()
       .setColor('#FF0000') // Red side color
       .setTitle('New 9quote?!')
@@ -37,9 +35,11 @@ module.exports = {
           `You have **until <t:${deadlineEpoch}:R>** to get **5 💀** reactions.`
         ].join('\n')
       )
-      .setFooter({ text: 'Disclaimer all 9quotes added are real and not fabricated, anything 9dots says to the contrary is a LIE.' }); // Something simple for the footer
+      .setFooter({
+        text: 'Disclaimer: all 9quotes added are real and not fabricated. Anything 9dots says to the contrary is a LIE.',
+      });
 
-    // 4) Send the embed (not ephemeral)
+    // 4) Send the embed
     const message = await interaction.reply({
       embeds: [embed],
       fetchReply: true,
@@ -48,56 +48,65 @@ module.exports = {
     // Add the 💀 reaction
     await message.react('💀');
 
-    // 5) Confirm to the user that it was posted
+    // Confirmation to the user
     await interaction.followUp({
-      content: 'Thank you for fighting against the oppression of stouffville.',
+      content: 'Your 9quote proposal has been submitted!',
       ephemeral: true,
     });
 
-    // 6) Reaction collector
-    const filter = (reaction, user) => {
-      return reaction.emoji.name === '💀' && !user.bot;
-    };
-    const collector = message.createReactionCollector({
-      filter,
-      time: oneHourMs,
+    // 5) Create a reaction collector
+    const filter = (reaction, user) => reaction.emoji.name === '💀' && !user.bot;
+    const collector = message.createReactionCollector({ filter, time: oneHourMs });
+
+    let previousReactionCount = 1; // Starts at 1 because the bot reacts initially
+
+    // Handle reaction changes
+    collector.on('collect', (reaction) => {
+      if (reaction.count >= 5) {
+        collector.stop('enough_skulls');
+      }
+      previousReactionCount = reaction.count;
     });
 
-    // If we hit 5 💀
-    collector.on('collect', (reaction, user) => {
-        console.log(`Collected a ${reaction.emoji.name} from ${user.tag}`);
-        console.log(`Current reaction.count is ${reaction.count}`);
-        if (reaction.count >= 5) {
-          collector.stop('enough_skulls');
-        }
-      });
-      
+    // Handle the message being deleted
+    message.channel.messages.cache.get(message.id)?.on('delete', async () => {
+      collector.stop('message_deleted');
+    });
 
-    // 7) End logic
+    // Reaction count changes (removal tracking)
+    collector.on('remove', (reaction, user) => {
+      if (reaction.count < previousReactionCount - 1) {
+        collector.stop('reaction_removed');
+      }
+      previousReactionCount = reaction.count;
+    });
+
+    // Handle collector end
     collector.on('end', async (collected, reason) => {
       if (reason === 'enough_skulls') {
-        // Reached 5 or more
-        try {
-          const quotesData = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
-          quotesData.quotes.push(proposedQuote);
-          fs.writeFileSync(quotesFilePath, JSON.stringify(quotesData, null, 2), 'utf-8');
+        // Add the quote
+        const quotesData = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
+        quotesData.quotes.push(proposedQuote);
+        fs.writeFileSync(quotesFilePath, JSON.stringify(quotesData, null, 2), 'utf-8');
 
-          await interaction.followUp({
-            content: `Added **"${proposedQuote}"** to the 9quotes!`,
-            ephemeral: false,
-          });
-        } catch (err) {
-          console.error('Error writing to quotes.json:', err);
-          await interaction.followUp({
-            content: 'Failed to add your quote due to an internal error!',
-            ephemeral: true,
-          });
-        }
+        // Announce success
+        await interaction.followUp({
+          content: `Added **"${proposedQuote}"** to the 9quotes!`,
+        });
+      } else if (reason === 'reaction_removed' || reason === 'message_deleted') {
+        // Add the quote because of tampering
+        const quotesData = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
+        quotesData.quotes.push(proposedQuote);
+        fs.writeFileSync(quotesFilePath, JSON.stringify(quotesData, null, 2), 'utf-8');
+
+        // Announce tampering
+        await interaction.followUp({
+          content: `**"${proposedQuote}"** has been added to the 9quotes because 9dots tried to delete or tamper with the reactions! 🐀`,
+        });
       } else {
         // Not enough skulls
         await interaction.followUp({
-          content: `Time’s up! This quote did not receive 5 💀 reactions within 1 hour and was NOT added. 9Dots tyranny wins again sadly...`,
-          ephemeral: false,
+          content: `Time’s up! This quote did not receive 5 💀 reactions within 1 hour and was NOT added.`,
         });
       }
     });
