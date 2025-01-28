@@ -1,8 +1,9 @@
-// index.js
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const db = require('./utils/database'); // Import the SQLite database
+const userReactionsMap = require('./data/userReactionsMap'); // Import the reactions map from the data folder
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -10,43 +11,23 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    // IMPORTANT: to receive reaction events
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
   ],
-  // Partials let your bot handle events for uncached messages/reactions
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// 1) Updated user ID to emoji map (using real Unicode emoji)
-const userReactionsMap = {
-  '590304012457214064': ['🇭', '🇦', '🇹', '🇪', '🇷'],   // HATER
-  '142778699324981248': ['🇱', '🇺', '🇬', '🇴', '🇳', '🇪'], // LUGONE
-  '76151670303625216':  ['🇫', '🇱', '🇴', '🇷', '🇮', '🇩', '🇦'], // FLORIDA
-  '133489640974843904': ['🇹', '🇱', '🇸', '🇺', '🇨', '🇰'], // TLSUCK
-  '158264851758579713': ['🇾', '🇦', '🇵'],             // YAP
-  '99601123731607552':  ['🇭', '🇵', '🇫', '🇮', '🇨'],   // HPFIC
-  '102167874818314240': ['🇫', '🇦', '🇰', '🇪', '🪭'],   // FAKE🪭
-  '213755220063158283': ['🇫', '🇱', '🇴', '🇵', '🇶', '🇺', '🇪', '🇸', '🇹'], // FLOPQUEST
-  '711953160008368168': ['🇲', '🇦', '🇷', '🇸', '🇭', '🇯', '🇴', '🇳'], // MARSHJON
-  '291670749041786880': ['🇩', '🇴', '🇼', '🇳', '🇧', '🇦', '🇩'], // DOWNBAD
-  '179125717370535937': ['🇫', '🇪', '🇦', '🇷'],       // FEAR
-  '194961715560054784': ['🇫', '🇱', '🇴', '🇵', '🇶', '🇺', '🇪', '🇸', '🇹'], // FLOPQUEST
-  '784019976381005844': ['🐀', '🇷', '🇦', '🇹'],       // RAT + RAT
-  '772464118724165662': ['🇱', '🇦', '🇼', '🇾', '🇪', '🇷', '🇸', '🇮', '🇳', '🇨'], // LAWYERSINC
-};
-
-// 2) Read command files (but do NOT register them here)
+// Read command files
 const commandFiles = fs
   .readdirSync(path.join(__dirname, 'commands'))
   .filter(file => file.endsWith('.js'));
 
-// 3) Bot ready event
+// Listen for the bot being ready
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-// 4) Slash command interaction handling
+// Listen for slash command interactions
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -67,10 +48,13 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// 5) messageCreate event for reacting to keywords and random user reactions
+// Listen for messages
 client.on('messageCreate', async (message) => {
-  // Ignore bots
+  // Ignore bot messages
   if (message.author.bot) return;
+
+  // Increment the user's message count
+  db.incrementMessage.run(message.author.id);
 
   // --- KEYWORD REACTIONS ---
   const content = message.content.toLowerCase();
@@ -95,24 +79,19 @@ client.on('messageCreate', async (message) => {
     await message.react('🇫');
     await message.react('🇷');
   }
-  if (content.includes('blaber')) {
-    await message.react('🐐');
-  }
-  if (content.includes('inspired')) {
-    await message.react('🐶');
-  }
 
-  // --- RANDOM 1/100 REACTION PER USER (if in userReactionsMap) ---
-  const reactions = userReactionsMap[message.author.id];
-  if (reactions) {
-    // 1% chance => 1/100
-    if (Math.random() < 0.01) {
-      for (const emoji of reactions) {
-        try {
-          await message.react(emoji);
-        } catch (err) {
-          console.error(`Failed to react with ${emoji}:`, err);
-        }
+  // --- RANDOM 1/100 REACTION PER USER ---
+  const userReactions = userReactionsMap[message.author.id];
+  if (userReactions && Math.random() < 0.01) {
+    // Increment the trigger count
+    db.incrementTrigger.run(message.author.id);
+
+    // React with each emoji
+    for (const emoji of userReactions) {
+      try {
+        await message.react(emoji);
+      } catch (err) {
+        console.error(`Failed to react with ${emoji}:`, err);
       }
     }
   }
