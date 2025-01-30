@@ -36,3 +36,5 @@ yarn.lock
 # If you are using TypeScript, ignore build artifacts
 dist
 *.tsbuildinfo
+
+data/stats.db
