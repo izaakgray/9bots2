@@ -38,3 +38,4 @@ dist
 *.tsbuildinfo
 
 data/stats.db
+data/stats.db
