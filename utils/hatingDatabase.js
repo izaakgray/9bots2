@@ -40,6 +40,14 @@ module.exports = {
     );
   },
 
+  removePoint: (userId) => {
+    db.run(
+      `UPDATE hating_points SET points = MAX(points - 1, 0) WHERE user_id = ?`,
+      [userId]
+    );
+  },
+  
+
   getTotalUsers: (callback) => {
     db.get(`SELECT COUNT(*) AS total FROM hating_points`, (err, row) => {
       if (err) {
