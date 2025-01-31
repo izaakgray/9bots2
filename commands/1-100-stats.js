@@ -9,17 +9,23 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
-    db.getTotalStats((stats) => {
+    try {
+      const stats = db.getTotalStats(); // Fetch total messages & triggers
+
       const embed = new EmbedBuilder()
-        .setColor('#FF4500') // Reddit orange for attention
+        .setColor('#FF4500') // Orange color for attention
         .setTitle('🎲 1/100 Stats Overview')
         .addFields(
-          { name: '📨 Total Messages Sent:', value: `${stats.totalMessages}`, inline: true },
-          { name: '🔥 Total 1/100 Triggers:', value: `${stats.totalTriggers}`, inline: true }
+          { name: '📨 Total Messages Sent:', value: `${stats.totalMessages || 0}`, inline: true },
+          { name: '🔥 Total 1/100 Triggers:', value: `${stats.totalTriggers || 0}`, inline: true }
         )
-        .setFooter({ text: 'Data collected from all users with a 1/100 chance.' });
+        .setFooter({ text: 'Tracking all users with a 1/100 chance.' });
 
-      interaction.editReply({ embeds: [embed] });
-    });
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (error) {
+      console.error('Error fetching 1/100 stats:', error);
+      await interaction.editReply('⚠️ An error occurred while retrieving 1/100 stats.');
+    }
   },
 };
