@@ -29,33 +29,40 @@ module.exports = {
     await message.react('⬆️'); // Upvote
     await message.react('⬇️'); // Downvote
 
-    const voteTracker = new Map(); // Tracks which users have voted & prevents double votes
+    const voteTracker = new Map(); // Tracks votes & allows switching
 
-    // Reaction collector logic
     const filter = (reaction, user) => {
-      if (user.bot) return false; // Ignore bot reactions
+      if (user.bot) return false;
       return ['⬆️', '⬇️'].includes(reaction.emoji.name);
     };
 
     const collector = message.createReactionCollector({ filter, time: 60 * 1000 });
 
-    collector.on('collect', (reaction, user) => {
+    collector.on('collect', async (reaction, user) => {
       const existingVote = voteTracker.get(user.id);
 
-      // Prevent voting for both up & down
-      if (existingVote && existingVote !== reaction.emoji.name) {
-        reaction.users.remove(user.id);
+      if (existingVote === reaction.emoji.name) {
+        // User is clicking the same reaction again (remove vote)
+        voteTracker.delete(user.id);
+        await reaction.users.remove(user.id);
       } else {
+        // Remove previous reaction if switching votes
+        if (existingVote) {
+          const prevReaction = message.reactions.cache.get(existingVote);
+          if (prevReaction) await prevReaction.users.remove(user.id);
+        }
+
+        // Store new vote
         voteTracker.set(user.id, reaction.emoji.name);
       }
     });
 
     collector.on('end', async () => {
-      const upvotes = message.reactions.cache.get('⬆️')?.count || 1; // Includes bot's reaction
+      const upvotes = message.reactions.cache.get('⬆️')?.count || 1; // Remove bot’s reaction
       const downvotes = message.reactions.cache.get('⬇️')?.count || 1;
 
-      const totalVotes = upvotes + downvotes - 2; // Remove bot's reactions
-      const upvotePercentage = upvotes / (totalVotes || 1); // Avoid divide by zero
+      const totalVotes = upvotes + downvotes - 2; // Remove bot's automatic reactions
+      const upvotePercentage = upvotes / (totalVotes || 1); // Prevent divide by zero
 
       if (upvotePercentage > 0.5) {
         db.addPoint(targetUser.id);
