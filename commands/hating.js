@@ -58,13 +58,10 @@ module.exports = {
     });
 
     collector.on('end', async () => {
-      const upvotes = message.reactions.cache.get('⬆️')?.count || 1; // Remove bot’s reaction
-      const downvotes = message.reactions.cache.get('⬇️')?.count || 1;
+      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot’s reaction
+      const downvotes = (message.reactions.cache.get('⬇️')?.count || 1) - 1;
 
-      const totalVotes = upvotes + downvotes - 2; // Remove bot's automatic reactions
-      const upvotePercentage = upvotes / (totalVotes || 1); // Prevent divide by zero
-
-      if (upvotePercentage > 0.5) {
+      if (upvotes > downvotes) {
         db.addPoint(targetUser.id);
         await interaction.followUp({
           content: `✅ **${targetUser}** was hating! Added to the leaderboard.`,
