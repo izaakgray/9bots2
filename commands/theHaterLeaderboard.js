@@ -13,8 +13,23 @@ module.exports = {
     .setDescription('View the hater leaderboard.'),
 
   async execute(interaction) {
+    // We now show 10 users per page
+    const pageSize = 10;
     let currentPage = 0;
-    const pageSize = 5;
+
+    // Helper to display rank icons for #1, #2, #3
+    const getRankLabel = (position) => {
+      switch (position) {
+        case 1:
+          return '🥇';
+        case 2:
+          return '🥈';
+        case 3:
+          return '🥉';
+        default:
+          return `#${position}`;
+      }
+    };
 
     /**
      * Generates an embed representing one "page" of the leaderboard.
@@ -26,18 +41,27 @@ module.exports = {
     const generateLeaderboardEmbed = (users, page, totalUsers) => {
       const totalPages = Math.ceil(totalUsers / pageSize);
 
+      // Create the embed
       const embed = new EmbedBuilder()
-        .setColor('#FF0000')
+        // Choose a nicer color, e.g. Discord blurple
+        .setColor('#5865F2')
         .setTitle('🏆 The Hater Leaderboard')
-        .setFooter({ text: `Page ${page + 1} of ${totalPages} | Total Haters: ${totalUsers}` });
+        // You can add a thumbnail or an image to spruce it up
+        .setThumbnail('https://static.vecteezy.com/system/resources/previews/019/013/598/non_2x/medal-awards-and-trophies-png.png')
+        .setFooter({
+          text: `Page ${page + 1} of ${totalPages} | Total Haters: ${totalUsers}`,
+        });
 
       if (users.length === 0) {
         embed.setDescription('No haters have been judged yet.');
       } else {
+        // Build the text for each user on this page
         const leaderboardText = users
-          .map((user, index) => 
-            `**#${page * pageSize + index + 1}** <@${user.user_id}> - **${user.points} points**`
-          )
+          .map((user, index) => {
+            const overallPosition = page * pageSize + index + 1;
+            const rankLabel = getRankLabel(overallPosition);
+            return `**${rankLabel}** <@${user.user_id}> — **${user.points} points**`;
+          })
           .join('\n');
 
         embed.setDescription(leaderboardText);
@@ -46,65 +70,63 @@ module.exports = {
       return embed;
     };
 
-    // Retrieve total number of users in the database
+    // Retrieve the total number of users
     db.getTotalUsers(async (totalUsers) => {
-      // If there are no users at all, just reply with a single embed
+      // If no one is on the leaderboard, just send a single embed
       if (totalUsers === 0) {
         return interaction.reply({
           embeds: [
             new EmbedBuilder()
-              .setColor('#FF0000')
+              .setColor('#5865F2')
               .setTitle('🏆 The Hater Leaderboard')
+              .setThumbnail('https://static.vecteezy.com/system/resources/previews/019/013/598/non_2x/medal-awards-and-trophies-png.png')
               .setDescription('No haters have been judged yet.'),
           ],
         });
       }
 
-      // Otherwise, get the users for the first page
+      // Otherwise, fetch the first page from the DB
       db.getLeaderboard(pageSize, currentPage * pageSize, async (users) => {
-        // Build initial embed
+        // Build the first page's embed
         let embed = generateLeaderboardEmbed(users, currentPage, totalUsers);
 
-        // Build the row of buttons
+        // Create the initial row of buttons
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('prev')
             .setLabel('⬅️ Previous')
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled(currentPage === 0), // disabled if on first page
+            .setDisabled(currentPage === 0),
 
           new ButtonBuilder()
             .setCustomId('next')
             .setLabel('Next ➡️')
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled((currentPage + 1) * pageSize >= totalUsers) // disabled if on last page
+            .setDisabled((currentPage + 1) * pageSize >= totalUsers)
         );
 
-        // Send the initial reply with embed and buttons
+        // Send the initial response
         const leaderboardMessage = await interaction.reply({
           embeds: [embed],
           components: [row],
           fetchReply: true,
         });
 
-        // If there's only one page, no need to collect button interactions
+        // If there’s only one page, don’t bother collecting button presses
         if (totalUsers <= pageSize) return;
 
-        // Create a message component collector (for the buttons)
-        const filter = (i) => {
-          // Ensure the button press is from the same user who ran the command
-          return i.user.id === interaction.user.id;
-        };
-
+        // Create a collector that lasts for 10 minutes (600 seconds)
+        const filter = (i) => i.user.id === interaction.user.id;
         const collector = leaderboardMessage.createMessageComponentCollector({
           filter,
-          time: 60_000, // 60 seconds
+          time: 600_000, // 10 minutes in milliseconds
         });
 
         collector.on('collect', async (i) => {
-          // We acknowledge the button press to avoid "This interaction failed" message
+          // Acknowledge the button click to avoid "interaction failed"
           await i.deferUpdate();
 
+          // Move the page index depending on which button was clicked
           if (i.customId === 'next') {
             if ((currentPage + 1) * pageSize < totalUsers) {
               currentPage++;
@@ -115,12 +137,11 @@ module.exports = {
             }
           }
 
-          // Fetch the updated leaderboard slice
+          // Fetch the new slice of data for the updated page
           db.getLeaderboard(pageSize, currentPage * pageSize, async (updatedUsers) => {
-            // Rebuild the embed
             embed = generateLeaderboardEmbed(updatedUsers, currentPage, totalUsers);
 
-            // Update button states
+            // Update the button states (disabled if on first or last page)
             const newRow = new ActionRowBuilder().addComponents(
               new ButtonBuilder()
                 .setCustomId('prev')
@@ -143,8 +164,8 @@ module.exports = {
           });
         });
 
+        // Once the collector ends (10 minutes pass), disable the buttons
         collector.on('end', () => {
-          // Once time is up, disable the buttons to prevent further clicks
           const disabledRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('prev')
@@ -159,9 +180,11 @@ module.exports = {
               .setDisabled(true)
           );
 
-          leaderboardMessage.edit({
-            components: [disabledRow],
-          }).catch(console.error);
+          leaderboardMessage
+            .edit({
+              components: [disabledRow],
+            })
+            .catch(console.error);
         });
       });
     });
