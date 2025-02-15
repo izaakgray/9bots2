@@ -30,7 +30,7 @@ client.once('ready', async () => {
   try {
     const channel = await client.channels.fetch('1092290893807108219');
     if (channel && channel.isTextBased()) {
-      await channel.send('.');
+      // await channel.send('.');
       console.log('✅ Startup message sent successfully!');
     } else {
       console.error('❌ Could not find a text-based channel with this ID.');
