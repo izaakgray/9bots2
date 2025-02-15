@@ -2,8 +2,8 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
-const db = require('./utils/database'); // Import the SQLite database
-const userReactionsMap = require('./data/userReactionsMap'); // Import the reactions map from the data folder
+const db = require('./utils/database');
+const userReactionsMap = require('./data/userReactionsMap');
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -22,9 +22,21 @@ const commandFiles = fs
   .readdirSync(path.join(__dirname, 'commands'))
   .filter(file => file.endsWith('.js'));
 
-// Listen for the bot being ready
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+client.once('ready', async () => {
+  console.log(`✅ Logged in as ${client.user.tag}!`);
+
+  // Send a startup message in a specific channel
+  try {
+    const channel = await client.channels.fetch('1092290893807108219');
+    if (channel && channel.isTextBased()) {
+      await channel.send('.');
+      console.log('✅ Startup message sent successfully!');
+    } else {
+      console.error('❌ Could not find a text-based channel with this ID.');
+    }
+  } catch (err) {
+    console.error('❌ Error fetching/sending to channel:', err);
+  }
 });
 
 // Listen for slash command interactions
@@ -50,8 +62,10 @@ client.on('interactionCreate', async interaction => {
 
 // Listen for messages
 client.on('messageCreate', async (message) => {
-  // Ignore bot messages
+  // Ignore messages from bots
   if (message.author.bot) return;
+
+  console.log(`📩 Message received from: ${message.author.id} - ${message.content}`);
 
   // Increment the user's message count
   db.incrementMessage.run(message.author.id);
@@ -59,45 +73,34 @@ client.on('messageCreate', async (message) => {
   // --- KEYWORD REACTIONS ---
   const content = message.content.toLowerCase();
 
-  if (content.includes('french')) {
-    await message.react('🤮');
+  if (content.includes('french')) await message.react('🤮');
+  if (content.includes('british')) { 
+    await message.react('💪'); 
+    await message.react('🇬🇧'); 
   }
-  if (content.includes('british')) {
-    await message.react('💪');
-    await message.react('🇬🇧');
+  if (content.includes('american')) await message.react('🫃');
+  if (content.includes('9dots')) await message.react('🐀');
+  if (content.includes('squidposting')) await message.react('🦑');
+  if (content.includes('frfr')) { 
+    await message.react('🇫'); 
+    await message.react('🇷'); 
   }
-  if (content.includes('american')) {
-    await message.react('🫃');
-  }
-  if (content.includes('9dots')) {
-    await message.react('🐀');
-  }
-  if (content.includes('squidposting')) {
-    await message.react('🦑');
-  }
-  if (content.includes('frfr')) {
-    await message.react('🇫');
-    await message.react('🇷');
-  }
-  if (content.includes('blaber')) {
-    await message.react('🐐');
-  }
-  if (content.includes('inspired')) {
-    await message.react('🐶');
-  }
+  if (content.includes('blaber')) await message.react('🐐');
+  if (content.includes('inspired')) await message.react('🐶');
 
-  // --- RANDOM 1/100 REACTION PER USER ---
+  // --- RANDOM 1/100 REACTION PER USER (adjust the probability as needed) ---
   const userReactions = userReactionsMap[message.author.id];
-  if (userReactions && Math.random() < 0.01) {
-    // Increment the trigger count
+  if (Math.random() < 1) {
     db.incrementTrigger.run(message.author.id);
+    console.log(`🎯 1/100 Triggered for: ${message.author.id}`);
 
-    // React with each emoji
+    // Normal reaction process
     for (const emoji of userReactions) {
       try {
         await message.react(emoji);
+        console.log(`✅ Reacted with ${emoji} for ${message.author.id}`);
       } catch (err) {
-        console.error(`Failed to react with ${emoji}:`, err);
+        console.error(`❌ Failed to react with ${emoji}:`, err);
       }
     }
   }
