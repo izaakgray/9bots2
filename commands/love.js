@@ -57,20 +57,17 @@ module.exports = {
     });
 
     collector.on('end', async () => {
-      const upvotes = message.reactions.cache.get('⬆️')?.count || 1;
-      const downvotes = message.reactions.cache.get('⬇️')?.count || 1;
+      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot’s reaction
+      const downvotes = (message.reactions.cache.get('⬇️')?.count || 1) - 1;
 
-      const totalVotes = upvotes + downvotes - 2; // Remove bot's reactions
-      const upvotePercentage = upvotes / (totalVotes || 1); // Prevent divide by zero
-
-      if (upvotePercentage > 0.5) {
+      if (upvotes > downvotes) {
         db.removePoint(targetUser.id);
         await interaction.followUp({
-          content: `✅ **${targetUser}** deserves love! 1 hater point removed.`,
+          content: `✅ **${targetUser}** deserves love! 1 hater point removed. Lover of all, simple leaf swaying in the wind.`,
         });
       } else {
         await interaction.followUp({
-          content: `❌ **${targetUser}** couldn't escape the hater life.`,
+          content: `❌ **${targetUser}** is still a hater...`,
         });
       }
     });
