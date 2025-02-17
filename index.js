@@ -95,14 +95,29 @@ client.on('messageCreate', async (message) => {
     db.incrementTrigger.run(message.author.id);
     console.log(`🎯 1/100 Triggered for: ${message.author.id}`);
 
-    // Ensure userReactions is always an array, even if the userId doesn’t exist in userReactionsMap
+    // Ensure userReactions is always an array, even if the userId doesn't exist in userReactionsMap
     const userReactions = userReactionsMap[message.author.id] || [];
 
     // React with each emoji in the user's reaction array
     for (const emoji of userReactions) {
       try {
-        await message.react(emoji);
-        console.log(`✅ Reacted with ${emoji} for ${message.author.id}`);
+        // Check if it's a custom emoji (starts with <:)
+        if (emoji.startsWith('<:')) {
+          // Extract the emoji ID from the format <:name:id>
+          const emojiId = emoji.split(':')[2].replace('>', '');
+          // Get the emoji from the client's cache
+          const customEmoji = client.emojis.cache.get(emojiId);
+          if (customEmoji) {
+            await message.react(customEmoji);
+            console.log(`✅ Reacted with custom emoji ${emoji} for ${message.author.id}`);
+          } else {
+            console.error(`❌ Custom emoji not found: ${emoji}`);
+          }
+        } else {
+          // Standard emoji
+          await message.react(emoji);
+          console.log(`✅ Reacted with ${emoji} for ${message.author.id}`);
+        }
       } catch (err) {
         console.error(`❌ Failed to react with ${emoji}:`, err);
       }
