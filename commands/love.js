@@ -57,13 +57,33 @@ module.exports = {
     });
 
     collector.on('end', async () => {
-      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot’s reaction
+      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot's reaction
       const downvotes = (message.reactions.cache.get('⬇️')?.count || 1) - 1;
 
-      if (upvotes > downvotes) {
+      // Get the users who upvoted
+      const upvoters = await message.reactions.cache.get('⬆️')?.users.fetch();
+      // Remove the bot from the upvoters
+      const botId = message.author.id; // The bot's ID
+      upvoters?.delete(botId);
+      
+      // Check if the only upvoter is the person who initiated the command
+      const onlySelfVoted = upvotes === 1 && upvoters?.has(interaction.user.id) && upvoters?.size === 1;
+      
+      // Check if the target user is the same as the command initiator
+      const isSelfTarget = targetUser.id === interaction.user.id;
+
+      if (upvotes > downvotes && !onlySelfVoted && !isSelfTarget) {
         db.removePoint(targetUser.id);
         await interaction.followUp({
           content: `✅ **${targetUser}** deserves love! 1 hater point removed. Lover of all, simple leaf swaying in the wind.`,
+        });
+      } else if (isSelfTarget) {
+        await interaction.followUp({
+          content: `❌ Nice try, **${interaction.user}**! You can't remove your own hater points.`,
+        });
+      } else if (upvotes > downvotes && onlySelfVoted) {
+        await interaction.followUp({
+          content: `❌ Nice try, **${interaction.user}**! You can't remove hater points when you're the only one who voted.`,
         });
       } else {
         await interaction.followUp({

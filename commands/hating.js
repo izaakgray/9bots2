@@ -58,17 +58,39 @@ module.exports = {
     });
 
     collector.on('end', async () => {
-      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot’s reaction
+      const upvotes = (message.reactions.cache.get('⬆️')?.count || 1) - 1; // Remove bot's reaction
       const downvotes = (message.reactions.cache.get('⬇️')?.count || 1) - 1;
 
-      if (upvotes > downvotes) {
+      // Get the users who upvoted
+      const upvoters = await message.reactions.cache.get('⬆️')?.users.fetch();
+      // Remove the bot from the upvoters
+      const botId = message.author.id; // The bot's ID
+      upvoters?.delete(botId);
+      
+      // Check if the only upvoter is the person who initiated the command
+      const onlySelfVoted = upvotes === 1 && upvoters?.has(interaction.user.id) && upvoters?.size === 1;
+      
+      // Check if the target user is the same as the command initiator
+      const isSelfTarget = targetUser.id === interaction.user.id;
+
+      if (upvotes > downvotes && !onlySelfVoted && !isSelfTarget) {
         db.addPoint(targetUser.id);
         await interaction.followUp({
           content: `✅ **${targetUser}** was hating! Added to the leaderboard.`,
         });
-      } else {
+      } else if (isSelfTarget) {
         await interaction.followUp({
-          content: `❌ **${targetUser}** wasn't hating, ur all haters.`,
+          content: `❌ Nice try, **${interaction.user}**! You can't give yourself hater points.`,
+        });
+      } else if (upvotes > downvotes && onlySelfVoted) {
+        await interaction.followUp({
+          content: `❌ Nice try, **${interaction.user}**! You can't give hater points when you're the only one who voted.`,
+        });
+      } else {
+        // Add a hater point to the command initiator if the vote doesn't pass
+        db.addPoint(interaction.user.id);
+        await interaction.followUp({
+          content: `❌ **${targetUser}** wasn't hating, ur all haters. **${interaction.user}** gets a hater point instead for false accusations!`,
         });
       }
     });
