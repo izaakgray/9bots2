@@ -30,7 +30,7 @@ client.once('ready', async () => {
   try {
     const channel = await client.channels.fetch('1092290893807108219');
     if (channel && channel.isTextBased()) {
-      // await channel.send('.');
+      //await channel.send('Randomly added 1 hater point to <@102167874818314240> for being a loser.');
       console.log('✅ Startup message sent successfully!');
     } else {
       console.error('❌ Could not find a text-based channel with this ID.');
@@ -87,6 +87,9 @@ client.on('messageCreate', async (message) => {
   }
   if (content.includes('blaber')) await message.react('🐐');
   if (content.includes('inspired')) await message.react('🐶');
+  
+  // Jojo reaction - clown emoji
+  if (content.includes('jojo')) await message.react('🤡');
 
   // RANDOM 1/100 REACTION
   // -> for a true 1% chance, use Math.random() < 0.01
