@@ -90,9 +90,9 @@ client.on('messageCreate', async (message) => {
   // Increment the user's message count
   db.incrementMessage.run(message.author.id);
 
-  // Special response for user 174163262596710400 mentioning "blaber"
+  // Special response for user 590304012457214064 mentioning "blaber"
   const content = message.content.toLowerCase();
-  if (message.author.id === '174163262596710400' && content.includes('blaber')) {
+  if (message.author.id === '590304012457214064' && content.includes('blaber')) {
     // Check if we have any unsent responses
     const unsentResponses = blaberResponsesData.responses.filter(
       response => !blaberResponsesData.sentResponses.includes(response)
@@ -111,7 +111,7 @@ client.on('messageCreate', async (message) => {
       // Save the updated data
       saveBlaberResponsesData();
       
-      console.log(`Sent blaber response to user 174163262596710400: ${nextResponse}`);
+      console.log(`Sent blaber response to user 590304012457214064: ${nextResponse}`);
     }
   }
 
