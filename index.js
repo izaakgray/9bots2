@@ -5,6 +5,25 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const db = require('./utils/database'); // SQLite database module
 const userReactionsMap = require('./data/userReactionsMap'); // Map of userId -> array of emojis
 
+// Load blaber responses data
+const blaberResponsesPath = path.join(__dirname, 'data', 'blaberResponses.json');
+let blaberResponsesData;
+try {
+  blaberResponsesData = JSON.parse(fs.readFileSync(blaberResponsesPath, 'utf8'));
+} catch (error) {
+  console.error('Error loading blaber responses:', error);
+  blaberResponsesData = { sentResponses: [], responses: [] };
+}
+
+// Function to save blaber responses data
+function saveBlaberResponsesData() {
+  try {
+    fs.writeFileSync(blaberResponsesPath, JSON.stringify(blaberResponsesData, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error saving blaber responses data:', error);
+  }
+}
+
 const TOKEN = process.env.DISCORD_TOKEN;
 
 const client = new Client({
@@ -71,8 +90,32 @@ client.on('messageCreate', async (message) => {
   // Increment the user's message count
   db.incrementMessage.run(message.author.id);
 
-  // KEYWORD REACTIONS
+  // Special response for user 174163262596710400 mentioning "blaber"
   const content = message.content.toLowerCase();
+  if (message.author.id === '174163262596710400' && content.includes('blaber')) {
+    // Check if we have any unsent responses
+    const unsentResponses = blaberResponsesData.responses.filter(
+      response => !blaberResponsesData.sentResponses.includes(response)
+    );
+    
+    if (unsentResponses.length > 0) {
+      // Get the next response
+      const nextResponse = unsentResponses[0];
+      
+      // Send the response
+      await message.reply(nextResponse);
+      
+      // Mark the response as sent
+      blaberResponsesData.sentResponses.push(nextResponse);
+      
+      // Save the updated data
+      saveBlaberResponsesData();
+      
+      console.log(`Sent blaber response to user 174163262596710400: ${nextResponse}`);
+    }
+  }
+
+  // KEYWORD REACTIONS
   if (content.includes('french')) await message.react('🤮');
   if (content.includes('british')) {
     await message.react('💪');
