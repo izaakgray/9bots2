@@ -92,6 +92,7 @@ client.on('messageCreate', async (message) => {
   
   // Jojo reaction - clown emoji
   if (content.includes('jojo')) await message.react('🤡');
+  if (content.includes('bwipo')) await message.react('🩸');
 
   // RANDOM 1/100 REACTION
   // -> for a true 1% chance, use Math.random() < 0.01
