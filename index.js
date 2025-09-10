@@ -5,24 +5,6 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const db = require('./utils/database'); // SQLite database module
 const userReactionsMap = require('./data/userReactionsMap'); // Map of userId -> array of emojis
 
-// Load blaber responses data
-const blaberResponsesPath = path.join(__dirname, 'data', 'blaberResponses.json');
-let blaberResponsesData;
-try {
-  blaberResponsesData = JSON.parse(fs.readFileSync(blaberResponsesPath, 'utf8'));
-} catch (error) {
-  console.error('Error loading blaber responses:', error);
-  blaberResponsesData = { sentResponses: [], responses: [] };
-}
-
-// Function to save blaber responses data
-function saveBlaberResponsesData() {
-  try {
-    fs.writeFileSync(blaberResponsesPath, JSON.stringify(blaberResponsesData, null, 2), 'utf8');
-  } catch (error) {
-    console.error('Error saving blaber responses data:', error);
-  }
-}
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -90,30 +72,7 @@ client.on('messageCreate', async (message) => {
   // Increment the user's message count
   db.incrementMessage.run(message.author.id);
 
-  // Special response for user 590304012457214064 mentioning "blaber"
   const content = message.content.toLowerCase();
-  if (message.author.id === '590304012457214064' && content.includes('blaber')) {
-    // Check if we have any unsent responses
-    const unsentResponses = blaberResponsesData.responses.filter(
-      response => !blaberResponsesData.sentResponses.includes(response)
-    );
-    
-    if (unsentResponses.length > 0) {
-      // Get the next response
-      const nextResponse = unsentResponses[0];
-      
-      // Send the response
-      await message.reply(nextResponse);
-      
-      // Mark the response as sent
-      blaberResponsesData.sentResponses.push(nextResponse);
-      
-      // Save the updated data
-      saveBlaberResponsesData();
-      
-      console.log(`Sent blaber response to user 590304012457214064: ${nextResponse}`);
-    }
-  }
 
   // KEYWORD REACTIONS
   if (content.includes('french')) await message.react('🤮');
