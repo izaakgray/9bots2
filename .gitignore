@@ -42,3 +42,7 @@ data/stats.db
 data/stats.db
 data/stats.db
 data/stats.db
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
