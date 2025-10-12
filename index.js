@@ -4,6 +4,7 @@ const path = require('path');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const db = require('./utils/database'); // SQLite database module
 const userReactionsMap = require('./data/userReactionsMap'); // Map of userId -> array of emojis
+const SkullboardManager = require('./utils/skullboard'); // Skullboard manager
 
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -17,6 +18,9 @@ const client = new Client({
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
+
+// Initialize skullboard manager
+const skullboardManager = new SkullboardManager(client);
 
 // --- READ COMMAND FILES ---
 const commandFiles = fs
@@ -128,6 +132,23 @@ client.on('messageCreate', async (message) => {
         console.error(`❌ Failed to react with ${emoji}:`, err);
       }
     }
+  }
+});
+
+// --- SKULLBOARD REACTION LISTENERS ---
+client.on('messageReactionAdd', async (reaction, user) => {
+  try {
+    await skullboardManager.handleReactionAdd(reaction, user);
+  } catch (error) {
+    console.error('❌ Error handling reaction add:', error);
+  }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+  try {
+    await skullboardManager.handleReactionRemove(reaction, user);
+  } catch (error) {
+    console.error('❌ Error handling reaction remove:', error);
   }
 });
 
