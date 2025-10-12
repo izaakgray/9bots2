@@ -24,7 +24,7 @@ db.exec(`
     guild_id TEXT PRIMARY KEY,
     skullboard_channel_id TEXT,
     skull_emoji TEXT DEFAULT '💀',
-    skull_threshold INTEGER DEFAULT 1,
+    skull_threshold INTEGER DEFAULT 5,
     enabled BOOLEAN DEFAULT 1
   )
 `);

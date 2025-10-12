@@ -295,7 +295,7 @@ class SkullboardManager {
   /**
    * Setup skullboard for a guild
    */
-  async setupSkullboard(guildId, skullboardChannelId, skullEmoji = '💀', skullThreshold = 1) {
+  async setupSkullboard(guildId, skullboardChannelId, skullEmoji = '💀', skullThreshold = 5) {
     try {
       skullboardDb.setConfig.run(guildId, skullboardChannelId, skullEmoji, skullThreshold, 1);
       console.log(`💀 Skullboard setup for guild ${guildId}`);

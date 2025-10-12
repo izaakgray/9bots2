@@ -20,7 +20,7 @@ module.exports = {
     .addIntegerOption(option =>
       option
         .setName('threshold')
-        .setDescription('Number of skull reactions needed (default: 1)')
+        .setDescription('Number of skull reactions needed (default: 5)')
         .setRequired(false)
         .setMinValue(1)
         .setMaxValue(50)
@@ -30,7 +30,7 @@ module.exports = {
   async execute(interaction) {
     const channel = interaction.options.getChannel('channel');
     const emoji = interaction.options.getString('emoji') || '💀';
-    const threshold = interaction.options.getInteger('threshold') || 1;
+    const threshold = interaction.options.getInteger('threshold') || 5;
 
     // Check if the channel is text-based
     if (!channel.isTextBased()) {
