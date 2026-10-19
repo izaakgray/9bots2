@@ -34,7 +34,7 @@ module.exports = {
       .setDescription(
         [
           `> "${proposedQuote}"\n`, // The quote in a blockquote style
-          `You have **until <t:${deadlineEpoch}:R>** to get **5 💀** reactions.`
+          `You have **until <t:${deadlineEpoch}:R>** to get **5 ☠️** reactions.`
         ].join('\n')
       )
       .setFooter({ text: 'Disclaimer all 9quotes added are real and not fabricated, anything 9dots says to the contrary is a LIE.' }); // Something simple for the footer
@@ -45,8 +45,8 @@ module.exports = {
       fetchReply: true,
     });
 
-    // Add the 💀 reaction
-    await message.react('💀');
+    // Add the ☠️ reaction
+    await message.react('☠️');
 
     // 5) Confirm to the user that it was posted
     await interaction.followUp({
@@ -56,14 +56,14 @@ module.exports = {
 
     // 6) Reaction collector
     const filter = (reaction, user) => {
-      return reaction.emoji.name === '💀' && !user.bot;
+      return reaction.emoji.name?.replace('\uFE0F', '') === '☠' && !user.bot;
     };
     const collector = message.createReactionCollector({
       filter,
       time: oneHourMs,
     });
 
-    // If we hit 5 💀
+    // If we hit 5 ☠️
     collector.on('collect', (reaction, user) => {
         console.log(`Collected a ${reaction.emoji.name} from ${user.tag}`);
         console.log(`Current reaction.count is ${reaction.count}`);
@@ -96,7 +96,7 @@ module.exports = {
       } else {
         // Not enough skulls
         await interaction.followUp({
-          content: `Time’s up! This quote did not receive 5 💀 reactions within 1 hour and was NOT added. 9Dots tyranny wins again sadly...`,
+          content: `Time’s up! This quote did not receive 5 ☠️ reactions within 1 hour and was NOT added. 9Dots tyranny wins again sadly...`,
           ephemeral: false,
         });
       }
